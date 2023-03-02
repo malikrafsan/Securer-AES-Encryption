@@ -86,27 +86,31 @@ class AES:
         padded_plain_text = plain_text + padding_str.encode('utf-8')
         return padded_plain_text
 
-    def encrypt_all_msg(self, msg: str):
+    def encrypt(self, msg: str):
         encoded_msg = msg.encode('utf-8')
 
-        block_num = len(encoded_msg) // self.block_size + \
-            (1 if len(encoded_msg) % self.block_size != 0 else 0)
+        plain_text = self.__pad(encoded_msg)
+
+        block_num = len(plain_text) // self.block_size + \
+            (1 if len(plain_text) % self.block_size != 0 else 0)
 
         self.buffer = ['' for _ in range(block_num)]
 
-        plain_text = self.__pad(encoded_msg)
         for i in range(block_num):
             block = plain_text[i * self.block_size: (i + 1) * self.block_size]
+            encrypt = self.__encrypt(int(block.hex(), 16))
+            self.buffer[i] = hex(encrypt)[2:]
 
-            self.buffer[i] = self.encrypt(int(block.hex(), 16))
+        return ''.join(self.buffer)
 
-        return self.buffer
+    def __split_into_chunks(self, str: str, n: int):
+        return [int(str[i:i+n], 16) for i in range(0, len(str), n)]
 
-    def decrypt_all_msg(self, msg: list[int]):
-        self.buffer = msg
+    def decrypt(self, msg: list[int]):
+        self.buffer = self.__split_into_chunks(msg, 32)
 
         for i in range(len(self.buffer)):
-            self.buffer[i] = self.decrypt(self.buffer[i])
+            self.buffer[i] = self.__decrypt(self.buffer[i])
             self.buffer[i] = bytes.fromhex(
                 hex(self.buffer[i])[2:]).decode('utf-8')
 
@@ -135,7 +139,7 @@ class AES:
                         ^ self.round_keys[i - 1][j]
                     self.round_keys[i].append(byte)
 
-    def encrypt(self, plaintext: int):
+    def __encrypt(self, plaintext: int):
         self.plain_state = text2matrix(plaintext)
 
         self.__add_round_key(self.plain_state, self.round_keys[:4])
@@ -150,7 +154,7 @@ class AES:
 
         return matrix2text(self.plain_state)
 
-    def decrypt(self, ciphertext: int):
+    def __decrypt(self, ciphertext: int):
         self.cipher_state = text2matrix(ciphertext)
 
         self.__add_round_key(self.cipher_state, self.round_keys[40:])
