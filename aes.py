@@ -52,6 +52,7 @@ Rcon = (
 
 class AES:
     def __init__(self, master_key: str):
+        self.master_key = master_key
         self.change_key(master_key)
         self.block_size = 16
 
@@ -84,26 +85,53 @@ class AES:
         padded_plain_text = plain_text + padding_str.encode('utf-8')
         return padded_plain_text
 
+    def __convert_int_to_str(self, num: int):
+        hex_str = hex(num)[2:]
+
+        # # split into chunks of 2 characters
+        # # turn into 1 byte
+        # # join into string
+        # print("len", len(hex_str))
+        # arr = [hex_str[i:i+2] for i in range(0, len(hex_str), 2)]
+        # # print(arr)
+        # # return ''.join([chr(int(hex_str[i:i+2], 16)) for i in range(0, len(hex_str), 2)])
+
+        return hex_str
+
     def encrypt(self, msg: str):
         encoded_msg = msg.encode('utf-8')
         plain_text = self.__pad(encoded_msg)
 
         block_num = len(plain_text) // self.block_size + \
             (1 if len(plain_text) % self.block_size != 0 else 0)
-        self.buffer = ['' for _ in range(block_num)]
+        self.buffer = [0 for _ in range(block_num)]
 
         for i in range(block_num):
             block = plain_text[i * self.block_size: (i + 1) * self.block_size]
-            encrypt = self.__encrypt(int(block.hex(), 16))
-            self.buffer[i] = hex(encrypt)[2:]
+            self.buffer[i] = self.__encrypt(int(block.hex(), 16))
 
-        return ''.join(self.buffer)
+        self.buffer[0] ^= self.master_key
+        for i in range(1, block_num):
+            for j in range(i):
+                self.buffer[i] ^= self.buffer[j]
+
+        self.res = ['' for _ in range(block_num)]
+        for i in range(block_num):
+            self.res[i] = self.__convert_int_to_str(self.buffer[i])
+
+        return ''.join(self.res)
 
     def __split_into_chunks(self, str: str, n: int):
         return [int(str[i:i+n], 16) for i in range(0, len(str), n)]
 
     def decrypt(self, msg: list[int]):
-        self.buffer = self.__split_into_chunks(msg, 32)
+        chunks = self.__split_into_chunks(msg, 32)
+        self.buffer = chunks.copy()
+
+        self.buffer[0] ^= self.master_key
+        for i in range(1, len(self.buffer)):
+            for j in range(i):
+                self.buffer[i] ^= chunks[j]
 
         for i in range(len(self.buffer)):
             self.buffer[i] = self.__decrypt(self.buffer[i])
