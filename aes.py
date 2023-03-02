@@ -50,29 +50,27 @@ Rcon = (
 )
 
 
-def text2matrix(text: bytes):
-    matrix: list[list[bytes]] = []
-    for i in range(16):
-        byte = (text >> (8 * (15 - i))) & 0xFF
-        if i % 4 == 0:
-            matrix.append([byte])
-        else:
-            matrix[i // 4].append(byte)
-    return matrix
-
-
-def matrix2text(matrix):
-    text = 0
-    for i in range(4):
-        for j in range(4):
-            text |= (matrix[i][j] << (120 - 8 * (4 * i + j)))
-    return text
-
-
 class AES:
     def __init__(self, master_key: str):
         self.change_key(master_key)
         self.block_size = 16
+
+    def __text2matrix(self, text: bytes):
+        matrix: list[list[bytes]] = []
+        for i in range(16):
+            byte = (text >> (8 * (15 - i))) & 0xFF
+            if i % 4 == 0:
+                matrix.append([byte])
+            else:
+                matrix[i // 4].append(byte)
+        return matrix
+
+    def __matrix2text(self, matrix):
+        text = 0
+        for i in range(4):
+            for j in range(4):
+                text |= (matrix[i][j] << (120 - 8 * (4 * i + j)))
+        return text
 
     def __unpad(self, plain_text):
         last_character = plain_text[len(plain_text) - 1:]
@@ -88,12 +86,10 @@ class AES:
 
     def encrypt(self, msg: str):
         encoded_msg = msg.encode('utf-8')
-
         plain_text = self.__pad(encoded_msg)
 
         block_num = len(plain_text) // self.block_size + \
             (1 if len(plain_text) % self.block_size != 0 else 0)
-
         self.buffer = ['' for _ in range(block_num)]
 
         for i in range(block_num):
@@ -119,7 +115,7 @@ class AES:
         return ''.join(self.buffer)
 
     def change_key(self, master_key: str):
-        self.round_keys = text2matrix(master_key)
+        self.round_keys = self.__text2matrix(master_key)
 
         for i in range(4, 4 * 11):
             self.round_keys.append([])
@@ -140,7 +136,7 @@ class AES:
                     self.round_keys[i].append(byte)
 
     def __encrypt(self, plaintext: int):
-        self.plain_state = text2matrix(plaintext)
+        self.plain_state = self.__text2matrix(plaintext)
 
         self.__add_round_key(self.plain_state, self.round_keys[:4])
 
@@ -152,10 +148,10 @@ class AES:
         self.__shift_rows(self.plain_state)
         self.__add_round_key(self.plain_state, self.round_keys[40:])
 
-        return matrix2text(self.plain_state)
+        return self.__matrix2text(self.plain_state)
 
     def __decrypt(self, ciphertext: int):
-        self.cipher_state = text2matrix(ciphertext)
+        self.cipher_state = self.__text2matrix(ciphertext)
 
         self.__add_round_key(self.cipher_state, self.round_keys[40:])
         self.__inv_shift_rows(self.cipher_state)
@@ -167,7 +163,7 @@ class AES:
 
         self.__add_round_key(self.cipher_state, self.round_keys[:4])
 
-        return matrix2text(self.cipher_state)
+        return self.__matrix2text(self.cipher_state)
 
     def __add_round_key(self, s: list[list[bytes]], k: list[list[bytes]]):
         for i in range(4):
