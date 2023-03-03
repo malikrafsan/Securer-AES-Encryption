@@ -55,6 +55,7 @@ class AES:
         self.master_key = master_key
         self.change_key(master_key)
         self.block_size = 16
+        self.byte_order = 'little'
 
     def __text2matrix(self, text: bytes):
         matrix: list[list[bytes]] = []
@@ -85,17 +86,14 @@ class AES:
         padded_plain_text = plain_text + padding_str.encode('utf-8')
         return padded_plain_text
 
+    def __present(self, buffer: list[int]):
+        arr_bytes = [elmt.to_bytes(16, self.byte_order) for elmt in buffer]
+        join = b''.join(arr_bytes)
+
+        return join
+
     def __convert_int_to_str(self, num: int):
         hex_str = hex(num)[2:]
-
-        # # split into chunks of 2 characters
-        # # turn into 1 byte
-        # # join into string
-        # print("len", len(hex_str))
-        # arr = [hex_str[i:i+2] for i in range(0, len(hex_str), 2)]
-        # # print(arr)
-        # # return ''.join([chr(int(hex_str[i:i+2], 16)) for i in range(0, len(hex_str), 2)])
-
         return hex_str
 
     def encrypt(self, msg: str):
@@ -119,13 +117,16 @@ class AES:
         for i in range(block_num):
             self.res[i] = self.__convert_int_to_str(self.buffer[i])
 
-        return ''.join(self.res)
+        return self.__present(self.buffer)
 
-    def __split_into_chunks(self, str: str, n: int):
-        return [int(str[i:i+n], 16) for i in range(0, len(str), n)]
+    def __split_into_chunks(self, b: bytes, n: int):
+        split_n = [b[i:i+n] for i in range(0, len(b), n)]
+        int_arr = [int.from_bytes(elmt, self.byte_order) for elmt in split_n]
+
+        return int_arr
 
     def decrypt(self, msg: list[int]):
-        chunks = self.__split_into_chunks(msg, 32)
+        chunks = self.__split_into_chunks(msg, 16)
         self.buffer = chunks.copy()
 
         self.buffer[0] ^= self.master_key
