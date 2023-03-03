@@ -52,12 +52,15 @@ Rcon = (
 
 class AES:
     def __init__(self, master_key: str):
-        self.master_key = master_key
-        self.change_key(master_key)
         self.block_size = 16
-        self.byte_order = 'little'
+        self.byte_order = 'big'
+        self.key_size = 16
 
-    def __text2matrix(self, text: bytes):
+        self.master_key = self.__convert_key_to_int(master_key)
+        print("master key: ", self.master_key)
+        self.change_key(self.master_key)
+
+    def __text2matrix(self, text: int):
         matrix: list[list[bytes]] = []
         for i in range(16):
             byte = (text >> (8 * (15 - i))) & 0xFF
@@ -66,6 +69,13 @@ class AES:
             else:
                 matrix[i // 4].append(byte)
         return matrix
+
+    def __convert_key_to_int(self, string: str):
+        byte_array = string.encode('utf-8')
+        if (len(byte_array) != self.key_size):
+            raise ValueError("Key size mismatch, must be 16 bytes")
+
+        return int(byte_array.hex(), 16)
 
     def __matrix2text(self, matrix):
         text = 0
@@ -92,10 +102,6 @@ class AES:
 
         return join
 
-    def __convert_int_to_str(self, num: int):
-        hex_str = hex(num)[2:]
-        return hex_str
-
     def encrypt(self, msg: str):
         encoded_msg = msg.encode('utf-8')
         plain_text = self.__pad(encoded_msg)
@@ -112,10 +118,6 @@ class AES:
         for i in range(1, block_num):
             for j in range(i):
                 self.buffer[i] ^= self.buffer[j]
-
-        self.res = ['' for _ in range(block_num)]
-        for i in range(block_num):
-            self.res[i] = self.__convert_int_to_str(self.buffer[i])
 
         return self.__present(self.buffer)
 
@@ -143,7 +145,7 @@ class AES:
 
         return ''.join(self.buffer)
 
-    def change_key(self, master_key: str):
+    def change_key(self, master_key: int):
         self.round_keys = self.__text2matrix(master_key)
 
         for i in range(4, 4 * 11):
