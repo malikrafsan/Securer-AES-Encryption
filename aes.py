@@ -114,10 +114,11 @@ class AES:
             block = plain_text[i * self.block_size: (i + 1) * self.block_size]
             self.buffer[i] = self.__encrypt(int(block.hex(), 16))
 
-        self.buffer[0] ^= self.master_key
-        for i in range(1, block_num):
-            for j in range(i):
-                self.buffer[i] ^= self.buffer[j]
+            if i == 0:
+                self.buffer[i] ^= self.master_key
+            else:
+                for j in range(i):
+                    self.buffer[i] ^= self.buffer[j]
 
         return self.__present(self.buffer)
 
@@ -131,12 +132,13 @@ class AES:
         chunks = self.__split_into_chunks(msg, 16)
         self.buffer = chunks.copy()
 
-        self.buffer[0] ^= self.master_key
-        for i in range(1, len(self.buffer)):
-            for j in range(i):
-                self.buffer[i] ^= chunks[j]
-
         for i in range(len(self.buffer)):
+            if i == 0:
+                self.buffer[i] ^= self.master_key
+            else:
+                for j in range(i):
+                    self.buffer[i] ^= chunks[j]
+
             self.buffer[i] = self.__decrypt(self.buffer[i])
             self.buffer[i] = bytes.fromhex(
                 hex(self.buffer[i])[2:]).decode('utf-8')
