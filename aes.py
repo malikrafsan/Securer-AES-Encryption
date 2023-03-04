@@ -117,8 +117,7 @@ class AES:
             if i == 0:
                 self.buffer[i] ^= self.master_key
             else:
-                for j in range(i):
-                    self.buffer[i] ^= self.buffer[j]
+                self.buffer[i] ^= self.buffer[i-1]
 
         return self.__present(self.buffer)
 
@@ -136,8 +135,7 @@ class AES:
             if i == 0:
                 self.buffer[i] ^= self.master_key
             else:
-                for j in range(i):
-                    self.buffer[i] ^= chunks[j]
+                self.buffer[i] ^= chunks[i-1]
 
             self.buffer[i] = self.__decrypt(self.buffer[i])
             self.buffer[i] = bytes.fromhex(
@@ -259,11 +257,12 @@ class AES:
             s[i][3] ^= v
 
         self.__mix_columns(s)
-    
-    def __make_playfair_key(self, key: list[list[bytes]], round : int):
+
+    def __make_playfair_key(self, key: list[list[bytes]], round: int):
         self.playfair_table = [['' for j in range(4)] for i in range(4)]
-        possible = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
-        c_row = key[round%4]
+        possible = ['0', '1', '2', '3', '4', '5', '6',
+                    '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+        c_row = key[round % 4]
         isian = []
 
         for i in range(4):
@@ -278,7 +277,7 @@ class AES:
 
             if (first_byte not in isian):
                 isian.append(first_byte)
-            
+
             if (second_byte not in isian):
                 isian.append(second_byte)
 
@@ -287,8 +286,8 @@ class AES:
                 isian.append(p)
 
         for i in range(16):
-            self.playfair_table[i//4][i%4] = isian[i]
-    
+            self.playfair_table[i//4][i % 4] = isian[i]
+
     def __change_byte(self, byte: bytes):
         hexa = hex(byte)
         c = ""
@@ -305,26 +304,26 @@ class AES:
                     first_byte = (row, col)
                 if (self.playfair_table[row][col] == second_byte):
                     second_byte = (row, col)
-        
+
         # replacing
         if (first_byte[0] == second_byte[0]):
-            c += self.playfair_table[first_byte[0]][(first_byte[1]+1)%4]
-            c += self.playfair_table[second_byte[0]][(second_byte[1]+1)%4]
+            c += self.playfair_table[first_byte[0]][(first_byte[1]+1) % 4]
+            c += self.playfair_table[second_byte[0]][(second_byte[1]+1) % 4]
         elif (first_byte[1] == second_byte[1]):
-            c += self.playfair_table[(first_byte[0]+1)%4][first_byte[1]]
-            c += self.playfair_table[(second_byte[0]+1)%4][second_byte[1]]
+            c += self.playfair_table[(first_byte[0]+1) % 4][first_byte[1]]
+            c += self.playfair_table[(second_byte[0]+1) % 4][second_byte[1]]
         else:
             c += self.playfair_table[first_byte[0]][second_byte[1]]
             c += self.playfair_table[second_byte[0]][first_byte[1]]
-        
+
         return c
-    
+
     def __change_byte_decrypt(self, byte: bytes):
         hexa = hex(byte)
         c = ""
         first_byte = hexa[2:3]
         second_byte = hexa[3:]
-        
+
         if (hexa[3:] == ''):
             second_byte = first_byte
             first_byte = '0'
@@ -335,27 +334,26 @@ class AES:
                     first_byte = (row, col)
                 if (self.playfair_table[row][col] == second_byte):
                     second_byte = (row, col)
-        
+
         # replacing
         if (first_byte[0] == second_byte[0]):
-            c += self.playfair_table[first_byte[0]][(first_byte[1]-1)%4]
-            c += self.playfair_table[second_byte[0]][(second_byte[1]-1)%4]
+            c += self.playfair_table[first_byte[0]][(first_byte[1]-1) % 4]
+            c += self.playfair_table[second_byte[0]][(second_byte[1]-1) % 4]
         elif (first_byte[1] == second_byte[1]):
-            c += self.playfair_table[(first_byte[0]-1)%4][first_byte[1]]
-            c += self.playfair_table[(second_byte[0]-1)%4][second_byte[1]]
+            c += self.playfair_table[(first_byte[0]-1) % 4][first_byte[1]]
+            c += self.playfair_table[(second_byte[0]-1) % 4][second_byte[1]]
         else:
             c += self.playfair_table[first_byte[0]][second_byte[1]]
             c += self.playfair_table[second_byte[0]][first_byte[1]]
-        
+
         return c
-        
 
     def __start_encrypt_playfair(self, s: list[list[bytes]], key: list[list[bytes]]):
         for i in range(4):
             for j in range(4):
                 res = self.__change_byte(s[i][j])
                 s[i][j] = int(res, 16)
-    
+
     def __start_decrypt_playfair(self, s: list[list[bytes]], key: list[list[bytes]]):
         for i in range(4):
             for j in range(4):
@@ -365,8 +363,7 @@ class AES:
     def __encrypt_playfair(self, s: list[list[bytes]], key: list[list[bytes]], round: int):
         self.__make_playfair_key(key, round)
         self.__start_encrypt_playfair(s, key)
-    
+
     def __decrypt_playfair(self, s: list[list[bytes]], key: list[list[bytes]], round: int):
         self.__make_playfair_key(key, round)
         self.__start_decrypt_playfair(s, key)
-        
