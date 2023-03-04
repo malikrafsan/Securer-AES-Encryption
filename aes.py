@@ -52,8 +52,12 @@ Rcon = (
 
 class AES:
     def __init__(self, master_key: str):
-        self.change_key(master_key)
         self.block_size = 16
+        self.byte_order = 'big'
+        self.key_size = 16
+
+        self.master_key = self.__convert_key_to_int(master_key)
+        self.change_key(self.master_key)
 
     def __text2matrix(self, text: bytes):
         matrix: list[list[bytes]] = []
@@ -64,6 +68,13 @@ class AES:
             else:
                 matrix[i // 4].append(byte)
         return matrix
+
+    def __convert_key_to_int(self, string: str):
+        byte_array = string.encode('utf-8')
+        if (len(byte_array) != self.key_size):
+            raise ValueError("Key size mismatch, must be 16 bytes")
+
+        return int(byte_array.hex(), 16)
 
     def __matrix2text(self, matrix):
         text = 0
@@ -84,6 +95,12 @@ class AES:
         padded_plain_text = plain_text + padding_str.encode('utf-8')
         return padded_plain_text
 
+    def __present(self, buffer: list[int]):
+        arr_bytes = [elmt.to_bytes(16, self.byte_order) for elmt in buffer]
+        join = b''.join(arr_bytes)
+
+        return join
+
     def encrypt(self, msg: str):
         encoded_msg = msg.encode('utf-8')
         plain_text = self.__pad(encoded_msg)
@@ -94,16 +111,18 @@ class AES:
 
         for i in range(block_num):
             block = plain_text[i * self.block_size: (i + 1) * self.block_size]
-            encrypt = self.__encrypt(int(block.hex(), 16))
-            self.buffer[i] = hex(encrypt)[2:]
+            self.buffer[i] = self.__encrypt(int(block.hex(), 16))
 
-        return ''.join(self.buffer)
+        return self.__present(self.buffer)
 
-    def __split_into_chunks(self, str: str, n: int):
-        return [int(str[i:i+n], 16) for i in range(0, len(str), n)]
+    def __split_into_chunks(self, b: bytes, n: int):
+        split_n = [b[i:i+n] for i in range(0, len(b), n)]
+        int_arr = [int.from_bytes(elmt, self.byte_order) for elmt in split_n]
+
+        return int_arr
 
     def decrypt(self, msg: list[int]):
-        self.buffer = self.__split_into_chunks(msg, 32)
+        self.buffer = self.__split_into_chunks(msg, 16)
 
         for i in range(len(self.buffer)):
             self.buffer[i] = self.__decrypt(self.buffer[i])

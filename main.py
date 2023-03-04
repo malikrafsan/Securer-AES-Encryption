@@ -3,8 +3,8 @@ from aes import AES
 
 
 def main():
-    msg = "rozan fadhil alhamdulillah"
-    key = 0x2b7e151628aed2a6abf7158809cf4f3c
+    msg = "rozan fadhil alhamdulillah masih hidup"
+    key = "abcdefghij123456"
     aes = AES(key)
     digest = aes.encrypt(msg)
 
