@@ -286,6 +286,40 @@ class AES:
         for i in range(16):
             self.playfair_table[i//4][i%4] = isian[i]
     
+    def __change_byte(self, byte: bytes):
+        hexa = hex(byte)
+        c = ""
+        first_byte = hexa[2:3] if (hexa[2:3] != '') else '0'
+        second_byte = hexa[3:] if (hexa[3:] != '') else '0'
+        print(hexa, first_byte, second_byte)
+
+        for row in range(4):
+            for col in range(4):
+                if (self.playfair_table[row][col] == first_byte):
+                    first_byte = (row, col)
+                if (self.playfair_table[row][col] == second_byte):
+                    second_byte = (row, col)
+        
+        # replacing
+        if (first_byte[0] == second_byte[0]):
+            c += self.playfair_table[first_byte[0]][(first_byte[1]+1)%4]
+            c += self.playfair_table[second_byte[0]][(second_byte[1]+1)%4]
+        elif (first_byte[1] == second_byte[1]):
+            c += self.playfair_table[(first_byte[0]+1)%4][first_byte[1]]
+            c += self.playfair_table[(second_byte[0]+1)%4][second_byte[1]]
+        else:
+            c += self.playfair_table[first_byte[0]][second_byte[1]]
+            c += self.playfair_table[second_byte[0]][first_byte[1]]
+        
+        return c
+        
+
+    def __playfair(self, s: list[list[bytes]], key: list[list[bytes]]):
+        for i in range(4):
+            for j in range(4):
+                res = self.__change_byte(s[i][j])
+                print(hex(s[i][j]), res, int(res, 16))
+                s[i][j] = int(res, 16)
 
     def __encrypt_playfair(self, s: list[list[bytes]], key: list[list[bytes]], round: int):
         print("Encypt playfair round:", round)
@@ -294,3 +328,4 @@ class AES:
         for i in range(4):
             print(self.playfair_table[i])
         
+        self.__playfair(s, key)
