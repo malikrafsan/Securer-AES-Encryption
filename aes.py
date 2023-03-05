@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import base64
+
 Sbox = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
     0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -57,7 +59,6 @@ class AES:
         self.key_size = 16
 
         self.master_key = self.__convert_key_to_int(master_key)
-        print("master key: ", self.master_key)
         self.change_key(self.master_key)
 
     def __text2matrix(self, text: int):
@@ -100,7 +101,7 @@ class AES:
         arr_bytes = [elmt.to_bytes(16, self.byte_order) for elmt in buffer]
         join = b''.join(arr_bytes)
 
-        return join
+        return base64.b64encode(join).decode('utf-8')
 
     def encrypt(self, msg: str):
         encoded_msg = msg.encode('utf-8')
@@ -128,7 +129,8 @@ class AES:
         return int_arr
 
     def decrypt(self, msg: list[int]):
-        chunks = self.__split_into_chunks(msg, 16)
+        decoded = base64.b64decode(msg)
+        chunks = self.__split_into_chunks(decoded, 16)
         self.buffer = chunks.copy()
 
         for i in range(len(self.buffer)):
