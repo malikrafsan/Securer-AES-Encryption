@@ -1,3 +1,5 @@
+#!/bin/sh
+
 rm *.txt
 
 py generator.py > inp-encrypt.txt
