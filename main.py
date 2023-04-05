@@ -5,21 +5,6 @@ from aes import AES
 
 
 def main():
-    # msg = "rozan fadhil alhamdulillah masyaallah subhanallah la ilaha illallah"
-    # msg = "satutuju"
-    # key = "abcdefghij12🥲"
-    # aes_encrypt = AES(key)
-    # digest = aes_encrypt.encrypt(msg)
-
-    # print("len msg", len(msg))
-    # print("digest", digest)
-    # print("len digest", len(digest))
-
-    # aes_decrypt = AES(key)
-
-    # decrypted = aes_decrypt.decrypt(digest)
-    # print("decrypted", decrypted)
-
     print("Selamat datang pada program enkripsi dan dekripsi algoritma SAES2")
     print("Pilih menu")
     print("1. Enkripsi")
@@ -42,13 +27,15 @@ def main():
     if menu == "1":
         aes_encrypt = AES(key)
         digest = aes_encrypt.encrypt(msg)
-        print("\nHasil enkripsi", digest)
+        print("\nHasil enkripsi")
+        print(digest)
     elif menu == "2":
         # TODO: translasi string of bytes to bytes
 
         aes_decrypt = AES(key)
         decrypted = aes_decrypt.decrypt(msg)
-        print("\nHasil dekripsi", decrypted)
+        print("\nHasil dekripsi")
+        print(decrypted)
 
 
 if __name__ == "__main__":
